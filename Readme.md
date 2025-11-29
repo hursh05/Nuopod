@@ -28,24 +28,7 @@ NuoFunds is a three-part platform that turns transactional chaos into financial 
 ---
 
 ## Architecture
-
-┌─────────────────┐
-│   Mobile App    │ (React Native)
-│  (nuofunds)     │
-└────────┬────────┘
-         │
-         ↓
-┌─────────────────┐
-│  Admin API      │ (Next.js)
-│(nuofunds-admin) │
-└────────┬────────┘
-         │
-         ↓
-┌─────────────────┐
-│   AI Engine     │ (Python)
-│(nuofunds-backend)│
-└─────────────────┘
-
+[![nuofund-architecture.png](https://i.postimg.cc/d0GDmXDc/nuofund-architecture.png)](https://postimg.cc/4KNJXWzW)
 
 ---
 
@@ -208,12 +191,3 @@ Mobile App (Visualizations)
 - PostgreSQL
 - Expo CLI
 - NextJs 15+
-
----
-
-## Contributing
-
-This is a hackathon project. For questions or collaboration:
-- Review the problem statement PDF included in the repository
-- Check existing issues before creating new ones
-- Follow the established code structure
