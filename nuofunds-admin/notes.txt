@@ -1,0 +1,20 @@
+mobile features
+- onboarding flow/tour (optional)
+- auth
+    - login
+    - register
+- consent flow (resgistration skipable, profile)
+    - cases
+        incase of register (enter manually)
+        from profile
+- push notification
+
+- manual data entry forms flow
+- visulization
+
+
+setu related
+- get token + api to get latest token
+- create consent api
+- webhook, and parsing all type of webhooks and storing accordingly
+- api to get consent status/check if consent is available or not

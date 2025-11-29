@@ -1,0 +1,740 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SetuAccessToken {
+  id           String   @id @default(uuid()) @db.Uuid
+  accessToken  String
+  refreshToken String
+  createdAt    DateTime @default(now())
+}
+
+model AccountAggregatorConsent {
+  id                String                     @id @default(uuid()) @db.Uuid
+  userId            String                     @db.Uuid
+  consentId         String
+  pan               String
+  url               String
+  tags              String[]
+  usageCount        Int                        @default(0)
+  lastUsed          DateTime?
+  vua               String
+  fiTypes           FinancialInformationType[]
+  purposeCode       String
+  dataLifeUnit      String?
+  dataLifeValue     Int?
+  frequencyUnit     String?
+  frequencyValue    Int?
+  dataRangeToDate   DateTime?
+  dataRangeFromDate DateTime?
+  fetchType         ConsentFetchType
+  consentMode       ConsentMode
+  consentTypes      ConsentType[]
+  consentStart      DateTime?
+  consentExpiry     DateTime?
+  status            ConsentStatus              @default(PENDING)
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  user              Customer                   @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  accounts          ConsentAccountMapping[]
+
+  @@index([userId, consentId])
+}
+
+model FinancialAccount {
+  id                      String                   @id @default(uuid()) @db.Uuid
+  userId                  String                   @db.Uuid
+  fipId                   String
+  fipType                 FinancialInformationType
+  accountType             String
+  linkRefNumber           String
+  maskedAccNumber         String
+  consents                ConsentAccountMapping[]
+  user                    Customer                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  financialAccountHolders FinancialAccountHolder[]
+  financialAccountSummary FinancialAccountSummary?
+
+  @@index([userId, linkRefNumber])
+}
+
+model FinancialAccountHolder {
+  id                 String           @id @default(uuid()) @db.Uuid
+  name               String
+  dob                String
+  pan                String
+  email              String
+  mobile             String
+  address            String
+  nominee            String
+  ckycCompliance     String
+  financialAccountId String           @db.Uuid
+  financialAccount   FinancialAccount @relation(fields: [financialAccountId], references: [id])
+}
+
+model ConsentAccountMapping {
+  consentId String                   @db.Uuid
+  accountId String                   @db.Uuid
+  createdAt DateTime                 @default(now())
+  account   FinancialAccount         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  consent   AccountAggregatorConsent @relation(fields: [consentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([consentId, accountId])
+  @@index([accountId])
+}
+
+model Transaction {
+  id                        String                     @id @default(uuid()) @db.Uuid
+  userId                    String                     @db.Uuid
+  mode                      String
+  type                      String
+  txnId                     String?
+  amount                    Decimal                    @db.Decimal(10, 2)
+  balance                   Decimal?                   @db.Decimal(10, 2)
+  narration                 String?
+  reference                 String?
+  comment                   String?
+  date                      DateTime
+  valueData                 DateTime?
+  fiType                    FinancialInformationType?
+  financialAccountId        String?                    @db.Uuid
+  SpendingAlert             SpendingAlert[]
+  user                      Customer                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  TransactionClassification TransactionClassification?
+
+  @@index([userId])
+  @@index([financialAccountId])
+}
+
+model FinancialAccountSummary {
+  id                           String           @id @default(uuid()) @db.Uuid
+  financialAccountId           String           @unique @db.Uuid
+  branch                       String?
+  ifsc                         String?
+  micrCode                     String?
+  openingDate                  DateTime?
+  currentValue                 String?
+  status                       String?
+  accountSubType               String?
+  pendingAmount                String?
+  pendingTxnType               String?
+  currency                     String?
+  facility                     String?
+  drawingLimit                 String?
+  currentBalance               String?
+  currentODLimit               String?
+  balanceDateTime              DateTime?
+  tenureDays                   String?
+  tenureMonths                 String?
+  tenureYears                  String?
+  interestRate                 String?
+  maturityDate                 DateTime?
+  maturityAmount               String?
+  principalAmount              String?
+  interestPayout               String?
+  interestComputation          String?
+  compoundingFrequency         String?
+  recurringAmount              String?
+  recurringDepositDay          String?
+  interestOnMaturity           String?
+  interestPeriodicPayoutAmount String?
+  description                  String?
+  createdAt                    DateTime         @default(now())
+  updatedAt                    DateTime         @updatedAt
+  financialAccount             FinancialAccount @relation(fields: [financialAccountId], references: [id], onDelete: Cascade)
+}
+
+model SetuWebhook {
+  id        String           @id @default(uuid()) @db.Uuid
+  eventType WebhookEventType
+  payload   Json?
+  error     Json?
+  success   Boolean
+  timestamp DateTime
+  consentId String?
+
+  @@index([eventType])
+}
+
+model Customer {
+  id                        String                      @id @default(uuid()) @db.Uuid
+  name                      String?
+  email                     String                      @unique
+  password                  String
+  consent                   Boolean                     @default(false)
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @updatedAt
+  phone                     String                      @unique
+  consents                  AccountAggregatorConsent[]
+  ActionCard                ActionCard[]
+  CategoryBudget            CategoryBudget[]
+  DailyFeatures             DailyFeatures[]
+  DeviceTokens              DeviceTokens[]
+  ExpenseForecast           ExpenseForecast[]
+  fiAccounts                FinancialAccount[]
+  Goal                      Goal[]
+  IncomeForecast            IncomeForecast[]
+  MicroGoal                 MicroGoal[]
+  MotivationStreak          MotivationStreak[]
+  NotificationAnalytics     NotificationAnalytics[]
+  NotificationPreference    NotificationPreference?
+  PipelineLog               PipelineLog[]
+  Shortfall                 Shortfall[]
+  SpendingAlert             SpendingAlert[]
+  transactions              Transaction[]
+  TransactionClassification TransactionClassification[]
+  UserFinancialInsights     UserFinancialInsights[]
+  UserNotification          UserNotification[]
+}
+
+model DailyFeatures {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  date             DateTime  @db.Date
+  totalIncome      Decimal?  @default(0) @db.Decimal(12, 2)
+  totalExpense     Decimal?  @default(0) @db.Decimal(12, 2)
+  netAmount        Decimal?  @db.Decimal(12, 2)
+  transactionCount Int?      @default(0)
+  closingBalance   Decimal?  @db.Decimal(12, 2)
+  rolling7Mean     Decimal?  @db.Decimal(12, 2)
+  rolling30Mean    Decimal?  @db.Decimal(12, 2)
+  rolling7Std      Decimal?  @db.Decimal(12, 2)
+  dayOfWeek        Int?
+  isWeekend        Boolean?
+  month            Int?
+  createdAt        DateTime? @default(now())
+  updatedAt        DateTime? @default(now())
+  Customer         Customer  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date(sort: Desc)])
+}
+
+model ExpenseForecast {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  forecastDate     DateTime  @db.Date
+  category         String
+  predictedExpense Decimal   @db.Decimal(12, 2)
+  confidence       Decimal?  @db.Decimal(5, 4)
+  modelUsed        String?
+  generatedAt      DateTime? @default(now())
+  Customer         Customer  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, forecastDate, category, generatedAt], map: "ExpenseForecast_userId_forecastDate_category_key")
+  @@index([userId, category, forecastDate(sort: Desc)], map: "ExpenseForecast_userId_category_idx")
+}
+
+model IncomeForecast {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @db.Uuid
+  forecastDate    DateTime  @db.Date
+  predictedIncome Decimal   @db.Decimal(12, 2)
+  confidence      Decimal?  @db.Decimal(5, 4)
+  modelUsed       String?
+  mape            Decimal?  @db.Decimal(8, 4)
+  generatedAt     DateTime? @default(now())
+  Customer        Customer  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, forecastDate, generatedAt], map: "IncomeForecast_userId_forecastDate_key")
+  @@index([userId, forecastDate(sort: Desc)])
+}
+
+model PipelineLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String?   @db.Uuid
+  stage       String
+  status      String
+  message     String?
+  startedAt   DateTime? @default(now())
+  completedAt DateTime?
+  duration    Int?
+  Customer    Customer? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt(sort: Desc)], map: "PipelineLog_userId_idx")
+}
+
+model TransactionClassification {
+  id                  String      @id @default(uuid()) @db.Uuid
+  transactionId       String      @unique @db.Uuid
+  userId              String      @db.Uuid
+  isIncome            Boolean     @default(false)
+  category            String
+  merchantName        String?
+  confidence          Decimal?    @db.Decimal(5, 4)
+  narrationNormalized String?
+  classifiedAt        DateTime?   @default(now())
+  Transaction         Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  Customer            Customer    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([isIncome])
+  @@index([userId])
+}
+
+model ActionCard {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  userId                String                 @db.Uuid
+  insightId             String?                @db.Uuid
+  cardType              String
+  priority              String
+  category              String?
+  title                 String
+  message               String
+  messageHindi          String?
+  icon                  String?
+  color                 String?
+  actionType            String?
+  actionAmount          Decimal?               @db.Decimal(12, 2)
+  actionCategory        String?
+  actionDescription     String?
+  expectedSavings       Decimal?               @db.Decimal(12, 2)
+  expectedImpactDays    Int?
+  impactDescription     String?
+  validFrom             DateTime?              @default(now())
+  validUntil            DateTime?
+  showAfter             DateTime?
+  isUrgent              Boolean?               @default(false)
+  daysUntilImpact       Int?
+  status                String?                @default("pending")
+  shownAt               DateTime?
+  respondedAt           DateTime?
+  completedAt           DateTime?
+  userResponse          Json?
+  completionProof       Json?
+  acceptanceLikelihood  Decimal?               @db.Decimal(5, 4)
+  acceptanceFactors     String[]
+  rejectionReasons      String[]
+  relatedForecastId     String?
+  relatedTransactionIds String[]
+  triggerEvent          String?
+  createdAt             DateTime?              @default(now())
+  updatedAt             DateTime?              @default(now())
+  UserFinancialInsights UserFinancialInsights? @relation(fields: [insightId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Customer              Customer               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  UserNotification      UserNotification[]
+
+  @@index([priority, status], map: "ActionCard_priority_idx")
+  @@index([userId, status, priority], map: "ActionCard_userId_status_idx")
+  @@index([userId, validFrom(sort: Desc)])
+}
+
+model CategoryBudget {
+  id                   String    @id @default(uuid()) @db.Uuid
+  userId               String    @db.Uuid
+  category             String
+  monthlyBudget        Decimal   @db.Decimal(12, 2)
+  dailyBudget          Decimal?  @db.Decimal(12, 2)
+  currentMonthSpend    Decimal?  @default(0) @db.Decimal(12, 2)
+  remainingBudget      Decimal?  @db.Decimal(12, 2)
+  percentUsed          Decimal?  @db.Decimal(12, 2)
+  daysRemainingInMonth Int?
+  isExceeded           Boolean?  @default(false)
+  exceededBy           Decimal?  @db.Decimal(12, 2)
+  status               String?   @default("active")
+  alertThreshold       Decimal?  @default(80) @db.Decimal(12, 2)
+  alertSent            Boolean?  @default(false)
+  month                DateTime? @db.Date
+  createdAt            DateTime? @default(now())
+  updatedAt            DateTime? @default(now())
+  Customer             Customer  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, category, month])
+  @@index([userId, month(sort: Desc)])
+}
+
+model MicroGoal {
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @db.Uuid
+  goalName              String
+  goalType              String
+  targetAmount          Decimal   @db.Decimal(12, 2)
+  currentAmount         Decimal?  @default(0) @db.Decimal(12, 2)
+  dailyTarget           Decimal?  @db.Decimal(12, 2)
+  startDate             DateTime? @default(dbgenerated("CURRENT_DATE")) @db.Date
+  targetDate            DateTime? @db.Date
+  daysRemaining         Int?
+  progressPercent       Decimal?  @db.Decimal(12, 2)
+  onTrack               Boolean?  @default(true)
+  daysAhead             Int?
+  status                String?   @default("active")
+  priority              String?   @default("medium")
+  motivationMessage     String?
+  milestoneMessages     String[]
+  lastEncouragementDate DateTime? @db.Date
+  createdAt             DateTime? @default(now())
+  updatedAt             DateTime? @default(now())
+  completedAt           DateTime?
+  Customer              Customer  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, status])
+}
+
+model MotivationStreak {
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId             String    @db.Uuid
+  streakType         String
+  currentStreak      Int?      @default(0)
+  longestStreak      Int?      @default(0)
+  totalCount         Int?      @default(0)
+  lastActivityDate   DateTime? @db.Date
+  streakStartDate    DateTime? @db.Date
+  milestonesAchieved Int[]     @default([])
+  nextMilestone      Int?
+  isActive           Boolean?  @default(true)
+  createdAt          DateTime? @default(now())
+  updatedAt          DateTime? @default(now())
+  Customer           Customer  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, streakType])
+  @@index([userId])
+}
+
+model NotificationAnalytics {
+  id                   String           @id @default(uuid()) @db.Uuid
+  notificationId       String           @db.Uuid
+  userId               String           @db.Uuid
+  deliveryAttempts     Int?             @default(0)
+  successfulDeliveries Int?             @default(0)
+  failedDeliveries     Int?             @default(0)
+  deliveryLatency      Int?
+  timeToFirstView      Int?
+  timeToAction         Int?
+  viewDuration         Int?
+  wasClicked           Boolean?         @default(false)
+  wasDismissed         Boolean?         @default(false)
+  wasActedUpon         Boolean?         @default(false)
+  sentiment            String?
+  createdAt            DateTime?        @default(now())
+  UserNotification     UserNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Customer             Customer         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([notificationId])
+}
+
+model NotificationPreference {
+  id                     String    @id @default(uuid()) @db.Uuid
+  userId                 String    @unique @db.Uuid
+  notificationsEnabled   Boolean?  @default(true)
+  preferredLanguage      String?   @default("en")
+  inAppEnabled           Boolean?  @default(true)
+  pushEnabled            Boolean?  @default(true)
+  emailEnabled           Boolean?  @default(false)
+  smsEnabled             Boolean?  @default(false)
+  whatsappEnabled        Boolean?  @default(false)
+  motivationEnabled      Boolean?  @default(true)
+  reminderEnabled        Boolean?  @default(true)
+  milestoneEnabled       Boolean?  @default(true)
+  tipEnabled             Boolean?  @default(true)
+  warningEnabled         Boolean?  @default(true)
+  celebrationEnabled     Boolean?  @default(true)
+  quietHoursStart        DateTime? @db.Time(6)
+  quietHoursEnd          DateTime? @db.Time(6)
+  preferredMorningTime   DateTime? @default(dbgenerated("'09:00:00'::time without time zone")) @db.Time(6)
+  preferredEveningTime   DateTime? @default(dbgenerated("'18:00:00'::time without time zone")) @db.Time(6)
+  maxDailyNotifications  Int?      @default(3)
+  maxWeeklyNotifications Int?      @default(10)
+  createdAt              DateTime? @default(now())
+  updatedAt              DateTime? @default(now())
+  Customer               Customer  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model NotificationTemplate {
+  id                   String             @id @default(uuid()) @db.Uuid
+  templateKey          String             @unique
+  category             String
+  triggerType          String
+  titleEnglish         String
+  messageEnglish       String
+  titleHindi           String?
+  messageHindi         String?
+  variables            String[]
+  icon                 String?
+  color                String?
+  conditionType        String?
+  conditionOperator    String?
+  conditionValue       Decimal?           @db.Decimal(12, 2)
+  additionalConditions Json?
+  preferredTime        DateTime?          @db.Time(6)
+  frequency            String?
+  cooldownDays         Int?               @default(0)
+  priority             String?            @default("normal")
+  isActive             Boolean?           @default(true)
+  createdAt            DateTime?          @default(now())
+  updatedAt            DateTime?          @default(now())
+  UserNotification     UserNotification[]
+
+  @@index([category])
+  @@index([triggerType])
+}
+
+model Shortfall {
+  id                 String    @id @default(uuid()) @db.Uuid
+  userId             String    @db.Uuid
+  forecastDate       DateTime  @db.Date
+  predictedIncome    Decimal   @db.Decimal(12, 2)
+  predictedExpense   Decimal   @db.Decimal(12, 2)
+  predictedShortfall Decimal   @db.Decimal(12, 2)
+  isDeficit          Boolean
+  riskLevel          String
+  generatedAt        DateTime? @default(now())
+  Customer           Customer  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, forecastDate(sort: Desc)])
+}
+
+model SpendingAlert {
+  id                  String       @id @default(uuid()) @db.Uuid
+  userId              String       @db.Uuid
+  alertType           String
+  severity            String
+  category            String?
+  title               String
+  message             String
+  detectedAmount      Decimal?     @db.Decimal(12, 2)
+  normalAmount        Decimal?     @db.Decimal(12, 2)
+  percentageDeviation Decimal?     @db.Decimal(12, 2)
+  transactionId       String?      @db.Uuid
+  detectedAt          DateTime?    @default(now())
+  status              String?      @default("active")
+  acknowledgedAt      DateTime?
+  createdAt           DateTime?    @default(now())
+  Transaction         Transaction? @relation(fields: [transactionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  Customer            Customer     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, status])
+}
+
+model UserFinancialInsights {
+  id                        String             @id @default(uuid()) @db.Uuid
+  userId                    String             @db.Uuid
+  analysisDate              DateTime?          @default(now())
+  analysisPeriodDays        Int?               @default(30)
+  avgDailyIncome            Decimal?           @db.Decimal(12, 2)
+  incomeStability           String?
+  incomeStabilityScore      Decimal?           @db.Decimal(12, 2)
+  incomeGrowthRate          Decimal?           @db.Decimal(12, 2)
+  lowestIncomeWeek          Decimal?           @db.Decimal(12, 2)
+  highestIncomeWeek         Decimal?           @db.Decimal(12, 2)
+  weekendIncomeBoost        Decimal?           @db.Decimal(12, 2)
+  avgDailyExpense           Decimal?           @db.Decimal(12, 2)
+  expenseStability          String?
+  topExpenseCategory        String?
+  topExpenseCategoryAmount  Decimal?           @db.Decimal(12, 2)
+  topExpenseCategoryPercent Decimal?           @db.Decimal(12, 2)
+  unnecessarySpendingAmount Decimal?           @db.Decimal(12, 2)
+  avgDailySavings           Decimal?           @db.Decimal(12, 2)
+  savingsRate               Decimal?           @db.Decimal(12, 2)
+  totalSavingsLast30Days    Decimal?           @db.Decimal(12, 2)
+  savingsConsistency        String?
+  daysWithZeroSavings       Int?
+  avgDailyBalance           Decimal?           @db.Decimal(12, 2)
+  lowestBalance             Decimal?           @db.Decimal(12, 2)
+  lowestBalanceDate         DateTime?          @db.Date
+  daysWithNegativeCashflow  Int?
+  daysWithLowBalance        Int?
+  cashCrunchRisk            String?
+  impulsivePurchases        Int?
+  spendingPatternType       String?
+  averageTransactionSize    Decimal?           @db.Decimal(12, 2)
+  highValueTransactions     Int?
+  overallRiskLevel          String?
+  riskScore                 Decimal?           @db.Decimal(12, 2)
+  riskFactors               String[]
+  strengths                 String[]
+  weaknesses                String[]
+  recommendedDailySavings   Decimal?           @db.Decimal(12, 2)
+  recommendedEmergencyFund  Decimal?           @db.Decimal(12, 2)
+  monthsToEmergencyFund     Decimal?           @db.Decimal(12, 2)
+  spendingPeakDay           String?
+  spendingPeakTime          String?
+  budgetAdherence           Decimal?           @db.Decimal(12, 2)
+  predictedShortfallDays    Int?
+  predictedShortfallAmount  Decimal?           @db.Decimal(12, 2)
+  nextLowBalanceDate        DateTime?          @db.Date
+  financialHealthGrade      String?
+  insightsSummary           String?
+  createdAt                 DateTime?          @default(now())
+  updatedAt                 DateTime?          @default(now())
+  ActionCard                ActionCard[]
+  Customer                  Customer           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  UserNotification          UserNotification[]
+
+  @@unique([userId, analysisDate], map: "UserFinancialInsights_userId_key")
+  @@index([overallRiskLevel], map: "UserFinancialInsights_riskLevel_idx")
+  @@index([userId, analysisDate(sort: Desc)], map: "UserFinancialInsights_userId_idx")
+}
+
+model UserNotification {
+  id                    String                  @id @default(uuid()) @db.Uuid
+  userId                String                  @db.Uuid
+  templateId            String?                 @db.Uuid
+  title                 String
+  message               String
+  titleHindi            String?
+  messageHindi          String?
+  icon                  String?
+  color                 String?
+  category              String
+  notificationType      String
+  priority              String?                 @default("normal")
+  context               Json?
+  personalizedData      Json?
+  relatedInsightId      String?                 @db.Uuid
+  relatedActionCardId   String?                 @db.Uuid
+  scheduledFor          DateTime
+  bestTimeToShow        DateTime?               @db.Time(6)
+  expiresAt             DateTime?
+  validFrom             DateTime?               @default(now())
+  validUntil            DateTime?
+  status                String?                 @default("scheduled")
+  sentAt                DateTime?
+  shownAt               DateTime?
+  readAt                DateTime?
+  dismissedAt           DateTime?
+  isInteractive         Boolean?                @default(false)
+  actionButton          String?
+  actionUrl             String?
+  userResponse          Json?
+  impressions           Int?                    @default(0)
+  clicks                Int?                    @default(0)
+  engagementScore       Decimal?                @db.Decimal(5, 2)
+  channels              String[]
+  deliveredChannels     String[]
+  createdAt             DateTime?               @default(now())
+  updatedAt             DateTime?               @default(now())
+  NotificationAnalytics NotificationAnalytics[]
+  ActionCard            ActionCard?             @relation(fields: [relatedActionCardId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  UserFinancialInsights UserFinancialInsights?  @relation(fields: [relatedInsightId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  NotificationTemplate  NotificationTemplate?   @relation(fields: [templateId], references: [id], onUpdate: NoAction)
+  Customer              Customer                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status, priority])
+  @@index([userId, category])
+  @@index([userId, status, scheduledFor(sort: Desc)], map: "UserNotification_userId_status_idx")
+}
+
+model DeviceTokens {
+  id         String   @id @default(uuid()) @db.Uuid
+  token      String   @unique
+  userId     String   @db.Uuid
+  deviceType Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  Customer   Customer @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model Goal {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String         @db.Uuid
+  goalName        String
+  goalAmount      Decimal        @db.Decimal
+  targetMode      String
+  targetDate      DateTime?      @db.Date
+  tenureDays      Int?
+  tenureMonths    Int?
+  priority        String?
+  purposeCategory String?
+  notes           String?
+  createdAt       DateTime?      @default(now()) @db.Timestamp(6)
+  updatedAt       DateTime?      @default(now()) @db.Timestamp(6)
+  Customer        Customer       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  GoalProgress    GoalProgress[]
+}
+
+model GoalProgress {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  goalId              String    @db.Uuid
+  date                DateTime  @db.Date
+  savedAmount         Decimal   @db.Decimal
+  runningTotal        Decimal   @db.Decimal
+  percentageCompleted Decimal   @db.Decimal
+  createdAt           DateTime? @default(now()) @db.Timestamp(6)
+  Goal                Goal      @relation(fields: [goalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+enum ConsentStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum ConsentFetchType {
+  PERIODIC
+  ONETIME
+}
+
+enum ConsentMode {
+  VIEW
+  STORE
+  QUERY
+  STREAM
+}
+
+enum ConsentType {
+  PROFILE
+  SUMMARY
+  TRANSACTIONS
+}
+
+enum FinancialInformationType {
+  DEPOSIT
+  TERM_DEPOSIT
+  RECURRING_DEPOSIT
+  SIP
+  CP
+  GOVT_SECURITIES
+  EQUITIES
+  BONDS
+  DEBENTURES
+  MUTUAL_FUNDS
+  ETF
+  IDR
+  CIS
+  AIF
+  INSURANCE_POLICIES
+  NPS
+  INVIT
+  REIT
+  GSTR1_3B
+  OTHER
+}
+
+enum SessionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum FinancialAccountType {
+  SAVINGS
+  CURRENT
+  CREDIT_CARD
+  LOAN
+  WALLET
+  INVESTMENT
+  OTHER
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum WebhookEventType {
+  FI_DATA_READY
+  FI_DATA_FAILED
+  CONSENT_STATUS_UPDATE
+  SESSION_STATUS_UPDATE
+}

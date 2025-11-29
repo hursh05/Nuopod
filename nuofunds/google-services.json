@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "111210387954",
+    "project_id": "nuofunds",
+    "storage_bucket": "nuofunds.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:111210387954:android:e052a4fca3fd5235fc336b",
+        "android_client_info": {
+          "package_name": "com.nuofunds"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8Tr7DSZ0u-XK_rzcj_dceJ7cRlwWXC6g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
